@@ -19,15 +19,16 @@ The first release. Clawboard is a side panel for Claude Code that turns your ses
 - The mod loads and answers `/clawboard scan` in a headless Claude Code 2.1.311 session started with `--plugin-dir` from a clean copy, with no login.
 - Installing from the repository's marketplace file works against a local copy, in an isolated home folder.
 - The animated artwork renders and animates in WebKit.
+- **Used in the Claude desktop app by the author:** the panel, the strip above the prompt, and opening and reopening the panel work there, and scrolling felt smooth after the lighter-pictures change. This is the author's own use, with no timings and no screenshots.
 
 ## What was not checked
 
 - **No real screenshots.** The panel itself was not captured; macOS Screen Recording permission was not available. See `docs/CAPTURING.md`.
-- The panel was exercised through the engine's test kit and a headless load, not watched live in the desktop app or the terminal.
-- **Opening was not watched live.** The strip, the panel opening at start, on attach and on every message, and what happens when you switch tabs or apps are covered by the automated tests and the engine's own documentation, but the author has not seen them happen in the desktop app. Whether the app really closes the panel on a tab switch is a report from a user, not something verified; Crab House records who closed it so the cause can be confirmed.
-- **Scroll smoothness was not measured.** The panel draws its pictures lightly by default because that is the most likely cause of scrolling lag; it has not been timed in the desktop app.
+- The terminal and the other surfaces were exercised through the engine's test kit and a headless load only, not watched live.
+- **Why the app sometimes closed the panel** when switching tabs or apps was not pinned down. Clawboard now reopens it on your next message or a click on the strip, and Crab House records who closed it last so the cause can be confirmed.
+- **Scroll smoothness was not timed.** The panel draws its pictures lightly by default; the author reports scrolling feels smooth after that change, but there are no measurements.
 - Limits and context against a real subscription account, real subagent runs, and the quality of model-written explanations and lessons.
-- Linux, Windows, VS Code and mobile surfaces.
+- Linux, Windows, VS Code and mobile.
 - Very large projects: the scan reads at most 5,000 files and 450 source files.
 
 ## Known limitations
