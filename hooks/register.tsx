@@ -10,6 +10,8 @@ import { renderPane } from './views'
 import type { Kit } from './views'
 
 const PANE = 'clawboard'
+// Prompt origins that are not the person typing: a message from one of these must not count as asking for the panel.
+const AUTOMATED: readonly string[] = ['task-notification', 'scheduled-trigger', 'peer', 'peer-send-message', 'projects-relay', 'coordinator', 'observer', 'observer-activity', 'auto-continuation', 'plugin']
 const DB = atom({ plugin: 'clawboard', key: 'db' } as const, defaultDb())
 const LOG = atom({ plugin: 'clawboard', key: 'log' } as const, [])
 const MAP = atom({ plugin: 'clawboard', key: 'map' } as const, null)
@@ -155,18 +157,21 @@ export const register: Register = on => {
     }
     bg = io
     root = e.cwd ?? (await $.session.cwd())
-    await $.command.register({ name: 'clawboard', description: 'Open the Clawboard crab colony panel', argumentHint: '[open|scan|reset]' })
+    // immediate: runs at once, even while Claude is mid-turn, instead of queueing behind it.
+    await $.command.register({ name: 'clawboard', description: 'Open, close or toggle the Clawboard crab colony panel', argumentHint: '[open|close|toggle|scan|reset]', immediate: true })
 
     const stored = await $.store.get('settings')
-    await io.setSettings(() => mergeSettings(stored))
+    const settings = await io.setSettings(() => mergeSettings(stored))
+    // Ask for the pane first, so nothing slower below can hold it up. Unasked, the engine seats
+    // it only on a wide window (144 columns, 110 once you have opened it yourself); the first
+    // message (below) is the moment it is placed at any width. The terminal opens it on /clawboard.
+    if (settings.autoOpen && e.surface !== 'terminal') void $.ui.open({ id: PANE, title: 'Clawboard' }).catch(() => undefined)
     const hist = await $.store.get('history')
     if (Array.isArray(hist)) await dbSet(io, 'history', h => (h.length ? h : (hist as UsageSample[]).slice(-600)))
     const lessons = await $.store.get(`lessons:${root}`)
     if (Array.isArray(lessons)) await aiSet(io, 'lessons', l => (l.length ? l : lessons))
     await ensureCrab(io, 'main')
 
-    // The terminal draws a pane inline in the transcript, so there it opens on /clawboard only.
-    if (e.surface !== 'terminal') void $.ui.open({ id: PANE, title: 'Clawboard' })
     $.clock.every(5000, () => void pollUsage(io))
     $.clock.every(3000, () => void syncAgents(io))
     $.clock.after(800, () => void pollUsage(io))
@@ -180,12 +185,28 @@ export const register: Register = on => {
   on('session.end', async (_$, e, next) => {
     const io = bg
     if (io && e.reason === 'clear') {
-      await io.setDb(d => ({ ...defaultDb(), tab: d.tab, selected: 'main' }))
+      await io.setDb(d => ({ ...defaultDb(), tab: d.tab, selected: 'main', paneClosed: d.paneClosed, autoOpened: d.autoOpened }))
       await io.setLog(() => [])
       await io.setAi(a => ({ ...a, text: {}, busy: {} }))
       pendingAgents.length = 0
       await ensureCrab(io, 'main')
     }
+    return next(e)
+  })
+
+  // The desktop app joins after the session starts: ask for the pane again once it has.
+  on('session.attach', async ($, e, next) => {
+    const io = bg
+    if (io && e.surface !== 'terminal') {
+      const [settings, closed] = await Promise.all([io.settings(), dbGet(io, 'paneClosed')])
+      if (settings.autoOpen && !closed) void $.ui.open({ id: PANE, title: 'Clawboard' }).catch(() => undefined)
+    }
+    return next(e)
+  })
+
+  // Closing the pane yourself means you do not want it back this session.
+  on('ui.close', async (_$, e, next) => {
+    if (bg && e.id === PANE && e.origin.kind === 'person') await dbSet(bg, 'paneClosed', () => true)
     return next(e)
   })
 
@@ -201,14 +222,28 @@ export const register: Register = on => {
       void runScan(io)
       await dbSet(io, 'tab', () => 'burrow')
     }
+    // An open but undrawn pane (waiting for a wide enough window) does not count as open.
+    const isOpen = (await $.ui.panes()).some(p => p.id === PANE && p.isPlaced)
+    if (arg === 'close' || (arg === 'toggle' && isOpen)) {
+      await dbSet(io, 'paneClosed', () => true)
+      await $.ui.close({ id: PANE })
+      return { text: 'Clawboard closed. /clawboard opens it again.' }
+    }
+    await dbSet(io, 'paneClosed', () => false)
     await $.ui.open({ id: PANE, title: 'Clawboard' })
     return { text: arg === 'scan' ? 'Clawboard is rescanning the project.' : 'Clawboard opened.' }
   })
 
-  on('prompt.submit', async (_$, e, next) => {
+  on('prompt.submit', async ($, e, next) => {
     const io = bg
     if (!io) return next(e)
     if (!e.isMeta && e.text.trim()) {
+      // A message you send counts as asking, so the pane is placed at any width, once per session.
+      const [settings, db] = await Promise.all([io.settings(), io.db()])
+      if (settings.autoOpen && !db.paneClosed && !db.autoOpened && !AUTOMATED.includes(e.origin?.kind ?? '') && (await $.session.surfaces()).some(s => s !== 'terminal')) {
+        await dbSet(io, 'autoOpened', () => true)
+        await $.ui.open({ id: PANE, title: 'Clawboard' }).catch(() => undefined)
+      }
       await ensureCrab(io, 'main')
       const text = short(e.text, 240)
       await patchCrab(io, 'main', c => ({ ...c, state: 'exploring', task: text, activity: 'Reading your request', status: 'running', lastResult: c.lastResult }))

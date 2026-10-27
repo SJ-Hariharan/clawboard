@@ -154,6 +154,8 @@ export type BoardSettings = {
   colony: 'beach' | 'row' | 'grid'
   level: Level
   autoExplain: boolean
+  /** Open the panel by itself: when the desktop app attaches, and on the first message. */
+  autoOpen: boolean
   looks: Record<string, CrabLook>
 }
 
@@ -172,6 +174,10 @@ export type Db = {
   previewState: CrabState
   mapSelected: string | null
   mapStale: boolean
+  /** The person closed the pane by hand: do not reopen it by itself this session. */
+  paneClosed: boolean
+  /** The first-message open has been made this session. */
+  autoOpened: boolean
 }
 
 export type AiState = {

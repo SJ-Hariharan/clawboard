@@ -15,6 +15,8 @@ export function defaultDb(): Db {
     previewState: 'coding',
     mapSelected: null,
     mapStale: false,
+    paneClosed: false,
+    autoOpened: false,
   }
 }
 
@@ -35,6 +37,7 @@ export function defaultSettings(): BoardSettings {
     colony: 'beach',
     level: 'beginner',
     autoExplain: false,
+    autoOpen: true,
     looks: { main: { ...DEFAULT_LOOK, hat: 'party' } },
   }
 }
@@ -58,6 +61,7 @@ export function mergeSettings(stored: unknown): BoardSettings {
     colony: s.colony === 'row' || s.colony === 'grid' ? s.colony : 'beach',
     level: s.level === 'intermediate' || s.level === 'advanced' ? s.level : 'beginner',
     autoExplain: !!s.autoExplain,
+    autoOpen: s.autoOpen !== false,
     looks: { ...d.looks, ...(s.looks ?? {}) },
   }
 }

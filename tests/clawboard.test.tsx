@@ -1,13 +1,25 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-type Opts = { store?: boolean; stored?: Record<string, unknown>; limits?: { kind: string; percentUsed: number; resetsAt?: string }[]; agents?: unknown[] }
+type Opts = { opens?: string[]; closes?: string[]; panes?: { id: string; isPlaced?: boolean }[]; commands?: unknown[]; store?: boolean; stored?: Record<string, unknown>; limits?: { kind: string; percentUsed: number; resetsAt?: string }[]; agents?: unknown[]; surfaces?: string[] }
 
 function engine(on: On, opts: Opts = {}) {
   const clock = mock.clock(on)
   if (opts.store !== false) mock.store(on, opts.stored)
-  on('command.register', () => ({ value: { command: 'clawboard' } }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('command.register', (_, e) => {
+    opts.commands?.push(e)
+    return { value: { command: 'clawboard' } }
+  })
+  on('ui.open', (_, e) => {
+    opts.opens?.push((e as { id: string }).id)
+    return { value: { isPlaced: true } }
+  })
+  on('ui.close', (_, e) => {
+    opts.closes?.push((e as { id: string }).id)
+    return { value: undefined } as never
+  })
+  on('ui.panes', () => ({ value: (opts.panes ?? []) as never }))
+  on('session.surfaces', () => ({ value: (opts.surfaces ?? ['desktop']) as never }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: '/tmp/clawboard-test' }))
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
@@ -42,7 +54,7 @@ test('crabs follow real tool calls and every workspace draws', async ($, on) => 
   })
 
   await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
-  await $.prompt.submit({ text: 'Add a login form', wait: false } as never)
+  await $.prompt.submit({ text: 'Add a login form', wait: false, origin: { kind: 'composer' } } as never)
   await $.tool.call({ tool: 'Edit', file_path: '/tmp/clawboard-test/src/components/Login.tsx', old_string: 'a', new_string: 'b\nc' })
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
 
@@ -169,4 +181,79 @@ test('quiz answers are saved with the lesson', async ($, on) => {
   const saved = writes['lessons:/tmp/clawboard-test'] as { answers: (number | null)[] }[]
   expect(saved[0]?.answers).toEqual([1])
   await ui.unmount()
+})
+
+test('/clawboard is registered to run at once, even mid-turn', async ($, on) => {
+  const commands: unknown[] = []
+  engine(on, { commands })
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  expect((commands[0] as { name: string; immediate?: boolean }).name).toBe('clawboard')
+  expect((commands[0] as { immediate?: boolean }).immediate).toBe(true)
+})
+
+test('the panel opens by itself: at start, and once more on the first message', async ($, on) => {
+  const opens: string[] = []
+  engine(on, { opens })
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  expect(opens).toEqual(['clawboard'])
+  await $.prompt.submit({ text: 'hello', wait: false, origin: { kind: 'composer' } } as never)
+  expect(opens).toEqual(['clawboard', 'clawboard'])
+  await $.prompt.submit({ text: 'again', wait: false, origin: { kind: 'composer' } } as never)
+  expect(opens.length).toBe(2)
+})
+
+test('the terminal does not open the panel by itself', async ($, on) => {
+  const opens: string[] = []
+  engine(on, { opens, surfaces: ['terminal'] })
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'terminal', isInteractive: true })
+  expect(opens).toEqual([])
+})
+
+test('auto-open can be switched off in Crab House settings', async ($, on) => {
+  const opens: string[] = []
+  engine(on, { opens, stored: { settings: { autoOpen: false } } })
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  await $.prompt.submit({ text: 'hello', wait: false, origin: { kind: 'composer' } } as never)
+  expect(opens).toEqual([])
+})
+
+test('a panel you closed stays closed, and /clawboard brings it back', async ($, on) => {
+  const opens: string[] = []
+  const closes: string[] = []
+  engine(on, { opens, closes, panes: [{ id: 'clawboard', isPlaced: true }] })
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  const run = (args: string) => $.command.run({ command: 'clawboard', args, origin: { kind: 'user' }, presentation: {} } as never)
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  await run('close')
+  expect(closes).toEqual(['clawboard'])
+  await $.prompt.submit({ text: 'hello', wait: false, origin: { kind: 'composer' } } as never)
+  expect(opens).toEqual(['clawboard']) // only the one from session start
+  await run('')
+  expect(opens).toEqual(['clawboard', 'clawboard'])
+  await run('toggle') // it is open, so toggle closes it
+  expect(closes).toEqual(['clawboard', 'clawboard'])
+})
+
+test('toggle opens a panel that exists but was never drawn, instead of closing it', async ($, on) => {
+  const opens: string[] = []
+  const closes: string[] = []
+  engine(on, { opens, closes, panes: [{ id: 'clawboard', isPlaced: false }] })
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  await $.command.run({ command: 'clawboard', args: 'toggle', origin: { kind: 'user' }, presentation: {} } as never)
+  expect(closes).toEqual([])
+  expect(opens).toEqual(['clawboard', 'clawboard'])
+})
+
+test('a background notification or another plugin does not count as you asking for the panel', async ($, on) => {
+  const opens: string[] = []
+  engine(on, { opens })
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  await $.prompt.submit({ text: 'a task finished', wait: false, origin: { kind: 'task-notification' } } as never)
+  await $.prompt.submit({ text: 'from a plugin', wait: false, origin: { kind: 'plugin', name: 'other' } } as never)
+  expect(opens).toEqual(['clawboard']) // only session start
+  await $.prompt.submit({ text: 'hello', wait: false, origin: { kind: 'composer' } } as never)
+  expect(opens).toEqual(['clawboard', 'clawboard'])
 })
