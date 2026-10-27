@@ -22,7 +22,7 @@ Claude Code can spend minutes reading files, editing code, running tests and han
 | 🌊 **The Tide** | Context-window use, five-hour and weekly plan limits with reset times, session cost, tokens per turn and per agent, and a usage history that survives restarts. Anything Claude Code did not report is marked unavailable. |
 | 🗺️ **The Burrow** | A diagram of your project's architecture built from your real files and `import` statements, the detected tech stack with a one-line explanation of each technology, and a click-through view of each component's files and relationships. |
 | 🐚 **Under the Shell** | Explanations of code changes and engineering decisions at beginner, intermediate or advanced level, plus short project-specific lessons with quizzes. |
-| 🏠 **Crab House** | Rename, reorder and hide workspaces. Switch between compact and decorative layouts. Dress the crabs: color, shell, hat, skin, animation and name. Reduced-motion and idle-animation switches, and a switch for whether the panel opens by itself. |
+| 🏠 **Crab House** | Rename, reorder and hide workspaces. Switch between compact and decorative layouts. Dress the crabs: color, shell, hat, skin, animation and name. Reduced-motion and idle-animation switches, and switches for the strip above the prompt and for whether the panel opens by itself. |
 
 The workspace names are the defaults; you can rename all of them.
 
@@ -44,13 +44,13 @@ claude plugin install clawboard --marketplace SJ-Hariharan/clawboard
 
 In the Claude desktop app, where `/plugin` does not run: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `SJ-Hariharan/clawboard`, then **Add plugin**.
 
-Then open the panel with `/clawboard`. On the desktop app (and in VS Code and mobile clients) the panel is requested when a session starts and again when the client attaches. Claude Code only draws a panel that a mod opens by itself if the window is wide enough (144 terminal columns, or 110 once you have opened it yourself from this mod), so on a narrower window Clawboard also opens it on your first message of the session, which works at any width. In the terminal it never opens by itself, because there it draws inline in the transcript; use `/clawboard`.
+Clawboard adds a **🦀 Clawboard strip above the prompt box**. It shows what the main crab is doing plus your context and five-hour figures, and clicking it opens the panel. A click is your own action, so it works at any window width, while Claude is busy, and after the app has closed the panel (some people see side panels disappear when they switch tabs or apps). The panel is also requested when a session starts and when the client attaches, and **it is reopened on every message you send** if it is not showing. Claude Code only draws a panel that a mod opens by itself when the window is at least 144 terminal columns wide (110 once you have opened it yourself from this mod); a click on the strip and your messages are not held to that. In the terminal the panel never opens by itself: use the strip or `/clawboard`.
 
-`/clawboard` runs at once, even while Claude is in the middle of a turn. It takes `open` (the default), `close`, `toggle`, `scan` and `reset`. If you close the panel by hand, it stays closed for the rest of that session until you run `/clawboard`.
+`/clawboard` does the same from the keyboard. It takes `open` (the default), `close`, `toggle`, `scan` and `reset`. It is registered to run at once, but whether the app lets a slash command through while Claude is working is up to the app; the strip button does not depend on that. `/clawboard close` keeps the panel closed, with no automatic reopening, until you click the strip or run `/clawboard` again. Crab House can switch off the automatic opening and the strip separately.
 
 ## Try it in two minutes
 
-1. Open a project and run `/clawboard` (on a wide desktop window it may already be open, and it opens on your first message if not). You get one crab, waiting.
+1. Open a project. Click the **🦀 Clawboard** strip above the prompt, or run `/clawboard`. (The panel may already be open, and it reopens on your next message if it is not.) You get one crab, waiting.
 2. Ask Claude something that touches files, for example *"add a short section about testing to the README"*. Watch the crab go from **exploring** (reading) to **coding** (editing) to **finished**.
 3. Ask for something that uses subagents (*"use two subagents to review the tests and the docs"*). Each real subagent appears as its own crab while it runs.
 4. Open **The Tide** to see context and limits, **The Burrow** and press **Scan project**, then click a component.
@@ -94,7 +94,7 @@ Select a crab with the name buttons under the colony (the panel's pictures canno
 Open **Crab House**.
 
 - **Workspaces:** rename them, move them up or down, hide the ones you do not use (Crab House itself always stays).
-- **Display:** compact or decorative layout, colony layout (beach, row, grid), reduced motion (no animation at all), idle animations (blinking, speech bubbles, snoozing), automatic per-turn explanations (off by default; they use your model quota), and **Open this panel by itself (when the desktop app attaches, and on your first message)**, on by default.
+- **Display:** compact or decorative layout, colony layout (beach, row, grid), reduced motion (no animation at all), idle animations (blinking, speech bubbles, snoozing), automatic per-turn explanations (off by default; they use your model quota), **Show the strip above the prompt**, and **Open this panel by itself, and reopen it on every message if it is not showing** (both on by default), plus a line saying who closed the panel last.
 - **Wardrobe:** pick the main crab, a single helper, or every helper of one type, then set its name, color (12), shell (5), hat (9), skin (6) and animation (4). The preview crab can show every state.
 
 Settings are saved across sessions. `/clawboard reset` restores the defaults.
@@ -131,8 +131,8 @@ Clawboard has no configuration file. Everything is in **Crab House**.
 | Problem | Try |
 | --- | --- |
 | The panel is not showing | Run `/clawboard`. In the terminal it never opens by itself. |
-| The panel did not appear when Claude Code started | Claude Code draws a panel that a mod opens by itself only when the window is at least 144 terminal columns wide (110 once you have opened it yourself from this mod); narrower, it waits undrawn. Clawboard also opens it on your first message of the session, which works at any width, so it should appear then. You can always run `/clawboard`. If neither happens, check that **Open this panel by itself** is on in Crab House. |
-| The panel will not come back after I closed it | Closing it by hand stops it from reopening by itself for the rest of that session. Run `/clawboard` (or `/clawboard toggle`) to bring it back. |
+| The panel did not appear when Claude Code started | Click the **🦀 Clawboard** strip above the prompt, or send a message: both open it at any width. Claude Code only draws a panel that a mod opens by itself when the window is at least 144 terminal columns wide (110 once you have opened it yourself from this mod); narrower, it waits undrawn. If that does not help, run `claude plugin validate` on the mod and look for `clawboard:` lines in `claude --debug`. |
+| The panel disappears when I switch tabs or apps | Click the strip above the prompt, or send a message, and it reopens. **Crab House → Display** says who closed it last (the app window, `/clawboard close`, or Claude Code dropping it), which helps if you report a problem. If you used `/clawboard close`, click the strip or run `/clawboard` to bring it back. |
 | Limits say **Unavailable** | Claude Code has not received them. They need a supported sign-in and at least one response. This is expected on API-key setups. |
 | Context shows nothing | It fills in after the first response of the session. |
 | The Burrow is empty | The session is not in a project folder, or it has no recognizable files. Open a project and press **Rescan project**. |

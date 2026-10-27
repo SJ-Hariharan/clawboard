@@ -16,7 +16,7 @@ export function defaultDb(): Db {
     mapSelected: null,
     mapStale: false,
     paneClosed: false,
-    autoOpened: false,
+    lastClose: null,
   }
 }
 
@@ -38,6 +38,7 @@ export function defaultSettings(): BoardSettings {
     level: 'beginner',
     autoExplain: false,
     autoOpen: true,
+    strip: true,
     looks: { main: { ...DEFAULT_LOOK, hat: 'party' } },
   }
 }
@@ -62,6 +63,7 @@ export function mergeSettings(stored: unknown): BoardSettings {
     level: s.level === 'intermediate' || s.level === 'advanced' ? s.level : 'beginner',
     autoExplain: !!s.autoExplain,
     autoOpen: s.autoOpen !== false,
+    strip: s.strip !== false,
     looks: { ...d.looks, ...(s.looks ?? {}) },
   }
 }

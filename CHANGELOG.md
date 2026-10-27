@@ -13,8 +13,9 @@ First public release.
 - **The Burrow:** a project scan that detects the tech stack from manifests and config, groups files into architecture layers, draws the relationships from import statements (JavaScript, TypeScript, Vue, Svelte, Python) and explains each component on request.
 - **Under the Shell:** explanations of changes and decisions at three levels, and generated lessons with quizzes saved per project.
 - **Crab House:** rename, reorder and hide workspaces, compact or decorative layout, three colony layouts, reduced motion, idle animations, and crab names, colors, shells, hats, skins and animations.
-- Automatic opening: the panel is requested at session start and when a desktop, VS Code or mobile client attaches, and it also opens on the person's first message of a session. It does not reopen by itself after the person closes it, and a Crab House switch (on by default) turns automatic opening off. The terminal never opens it by itself.
-- `/clawboard` (open), `/clawboard close`, `/clawboard toggle`, `/clawboard scan` and `/clawboard reset` commands. `/clawboard` runs immediately, even while Claude is in the middle of a turn.
+- **Always-there strip above the prompt box** (🦀 Clawboard): shows the main crab's state, context and five-hour figures, and a click opens the panel at any width, even while Claude is working. A Crab House switch turns it off.
+- Automatic opening: the panel is requested at session start and when a desktop, VS Code or mobile client attaches, and it is reopened on every message the person sends while it is not showing (automated messages do not count). A Crab House switch (on by default) turns it off. The terminal never opens it by itself. `/clawboard close` keeps it closed until it is opened again.
+- `/clawboard` (open), `/clawboard close`, `/clawboard toggle`, `/clawboard scan` and `/clawboard reset` commands. `/clawboard` is registered to run at once, even mid-turn. Crab House shows who closed the panel last, to help explain a panel that vanishes.
 - Tests, README artwork generators and a GitHub Actions workflow.
 
 ### Known limitations
@@ -23,6 +24,6 @@ First public release.
 - Import relationships exist for JavaScript, TypeScript, Vue, Svelte and Python only.
 - Tested on the desktop and terminal surfaces only, and on macOS only.
 - The panel has not been captured in a real screenshot yet.
-- Claude Code only draws a panel a mod opens by itself on a wide window (144 terminal columns, or 110 once the person has opened it from this mod), so on a narrow window the panel appears at the first message.
+- Claude Code only draws a panel a mod opens by itself on a wide window (144 terminal columns, or 110 once the person has opened it from this mod), so on a narrow window the panel appears when you click the strip or send a message.
 
 [0.1.0]: https://github.com/SJ-Hariharan/clawboard/releases/tag/v0.1.0

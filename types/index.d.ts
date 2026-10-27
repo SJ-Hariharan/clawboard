@@ -154,8 +154,10 @@ export type BoardSettings = {
   colony: 'beach' | 'row' | 'grid'
   level: Level
   autoExplain: boolean
-  /** Open the panel by itself: when the desktop app attaches, and on the first message. */
+  /** Open the panel by itself: when the desktop app attaches, and again on every message if it is not showing. */
   autoOpen: boolean
+  /** Show the clickable strip above the prompt box. */
+  strip: boolean
   looks: Record<string, CrabLook>
 }
 
@@ -174,10 +176,10 @@ export type Db = {
   previewState: CrabState
   mapSelected: string | null
   mapStale: boolean
-  /** The person closed the pane by hand: do not reopen it by itself this session. */
+  /** Closed with `/clawboard close`: stay closed until the person opens it again. */
   paneClosed: boolean
-  /** The first-message open has been made this session. */
-  autoOpened: boolean
+  /** Who closed the pane last and when, shown in Crab House so a vanishing panel can be explained. */
+  lastClose: { by: string; at: number } | null
 }
 
 export type AiState = {

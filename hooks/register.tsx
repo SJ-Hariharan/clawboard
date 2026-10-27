@@ -4,9 +4,10 @@ import type { IO } from './io'
 import type { Crab, CrabState, TimelineEvent, TokenTurn, UsageSample } from '../types'
 import { explainTurnEdits, runScan, saveSettings } from './actions'
 import { classify, short, testSummary } from './classify'
-import { defaultDb, defaultSettings, mergeSettings, newCrab } from './store'
+import { defaultDb, defaultSettings, mergeSettings, nameFor, newCrab } from './store'
 import { aiSet, dbGet, dbSet } from './io'
 import { renderPane } from './views'
+import { STATE_LABEL } from './crabs'
 import type { Kit } from './views'
 
 const PANE = 'clawboard'
@@ -185,7 +186,7 @@ export const register: Register = on => {
   on('session.end', async (_$, e, next) => {
     const io = bg
     if (io && e.reason === 'clear') {
-      await io.setDb(d => ({ ...defaultDb(), tab: d.tab, selected: 'main', paneClosed: d.paneClosed, autoOpened: d.autoOpened }))
+      await io.setDb(d => ({ ...defaultDb(), tab: d.tab, selected: 'main', paneClosed: d.paneClosed, lastClose: d.lastClose }))
       await io.setLog(() => [])
       await io.setAi(a => ({ ...a, text: {}, busy: {} }))
       pendingAgents.length = 0
@@ -204,9 +205,14 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // Closing the pane yourself means you do not want it back this session.
+  // Note who closed the pane, so a panel that vanishes can be explained (Crab House shows it).
+  // A close does not stop it coming back on the next message: the app may close it when you
+  // switch tabs or apps. Only `/clawboard close` keeps it closed.
   on('ui.close', async (_$, e, next) => {
-    if (bg && e.id === PANE && e.origin.kind === 'person') await dbSet(bg, 'paneClosed', () => true)
+    if (bg && e.id === PANE) {
+      const at = await bg.now()
+      await dbSet(bg, 'lastClose', () => ({ by: e.origin.kind, at }))
+    }
     return next(e)
   })
 
@@ -238,11 +244,12 @@ export const register: Register = on => {
     const io = bg
     if (!io) return next(e)
     if (!e.isMeta && e.text.trim()) {
-      // A message you send counts as asking, so the pane is placed at any width, once per session.
+      // A message you send counts as asking, so the pane is placed at any width. Do it on every
+      // message, because the app can close the pane (switching tabs or apps); skip it when it shows.
       const [settings, db] = await Promise.all([io.settings(), io.db()])
-      if (settings.autoOpen && !db.paneClosed && !db.autoOpened && !AUTOMATED.includes(e.origin?.kind ?? '') && (await $.session.surfaces()).some(s => s !== 'terminal')) {
-        await dbSet(io, 'autoOpened', () => true)
-        await $.ui.open({ id: PANE, title: 'Clawboard' }).catch(() => undefined)
+      if (settings.autoOpen && !db.paneClosed && !AUTOMATED.includes(e.origin?.kind ?? '') && (await $.session.surfaces()).some(s => s !== 'terminal')) {
+        const shown = (await $.ui.panes()).some(p => p.id === PANE && p.isPlaced)
+        if (!shown) await $.ui.open({ id: PANE, title: 'Clawboard' }).catch(() => undefined)
       }
       await ensureCrab(io, 'main')
       const text = short(e.text, 240)
@@ -405,7 +412,49 @@ export const register: Register = on => {
       view: id => $.ui.view({ agentId: id }),
     }
     const K = $.ui.resolve(e) as unknown as Kit
-    return renderPane(io, K, e)
+    // Never throw while drawing: the engine closes a pane whose drawing threw.
+    try {
+      return await renderPane(io, K, e)
+    } catch (err) {
+      const { Box, Text } = K
+      return (
+        <Box flexDirection="column">
+          <Text color="error">Clawboard hit an error while drawing: {String(err).slice(0, 200)}</Text>
+          <Text dimColor>It will try again on the next update. If this keeps happening, please report it.</Text>
+        </Box>
+      )
+    }
+  })
+
+  // The strip above the prompt box: always there, whatever the panel or a running turn is doing.
+  // A click is the person's own press, so the panel opens at any width.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
+    const settings = await read($, SETTINGS)
+    if (!settings.strip) return next(e)
+    const db = await read($, DB)
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const main = db.crabs.main
+    const five = db.usage?.rateLimits.find(r => r.kind === 'five_hour')
+    const bits = [
+      main ? `${nameFor(main, settings)} is ${STATE_LABEL[main.state].toLowerCase()}` : 'waiting for a message',
+      db.usage?.contextPercent !== undefined ? `context ${db.usage.contextPercent}%` : '',
+      five ? `5h ${five.percentUsed}%` : '',
+    ].filter(Boolean)
+    return (
+      <Box flexDirection="row" gap={1} alignItems="center">
+        <Button
+          key="open-clawboard"
+          variant="primary"
+          label="🦀 Clawboard"
+          onPress={async () => {
+            await update($, DB, d => ({ ...d, paneClosed: false }))
+            await $.ui.open({ id: PANE, title: 'Clawboard' })
+          }}
+        />
+        <Text dimColor>{bits.join(' · ')}</Text>
+      </Box>
+    )
   })
 }
 

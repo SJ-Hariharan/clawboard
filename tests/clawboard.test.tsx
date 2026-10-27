@@ -191,16 +191,25 @@ test('/clawboard is registered to run at once, even mid-turn', async ($, on) => 
   expect((commands[0] as { immediate?: boolean }).immediate).toBe(true)
 })
 
-test('the panel opens by itself: at start, and once more on the first message', async ($, on) => {
+test('the panel opens by itself at start, and on every message while it is not showing', async ($, on) => {
   const opens: string[] = []
-  engine(on, { opens })
+  engine(on, { opens }) // no pane is listed, so nothing is showing
   on('prompt.submit', (_, e) => ({ text: e.text }))
+  const say = (text: string) => $.prompt.submit({ text, wait: false, origin: { kind: 'composer' } } as never)
   await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
   expect(opens).toEqual(['clawboard'])
+  await say('hello')
+  await say('again')
+  expect(opens).toEqual(['clawboard', 'clawboard', 'clawboard'])
+})
+
+test('a message does not reopen a panel that is already showing', async ($, on) => {
+  const opens: string[] = []
+  engine(on, { opens, panes: [{ id: 'clawboard', isPlaced: true }] })
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
   await $.prompt.submit({ text: 'hello', wait: false, origin: { kind: 'composer' } } as never)
-  expect(opens).toEqual(['clawboard', 'clawboard'])
-  await $.prompt.submit({ text: 'again', wait: false, origin: { kind: 'composer' } } as never)
-  expect(opens.length).toBe(2)
+  expect(opens).toEqual(['clawboard']) // only the one from session start
 })
 
 test('the terminal does not open the panel by itself', async ($, on) => {
@@ -219,7 +228,7 @@ test('auto-open can be switched off in Crab House settings', async ($, on) => {
   expect(opens).toEqual([])
 })
 
-test('a panel you closed stays closed, and /clawboard brings it back', async ($, on) => {
+test('/clawboard close keeps the panel closed until /clawboard brings it back', async ($, on) => {
   const opens: string[] = []
   const closes: string[] = []
   engine(on, { opens, closes, panes: [{ id: 'clawboard', isPlaced: true }] })
@@ -256,4 +265,66 @@ test('a background notification or another plugin does not count as you asking f
   expect(opens).toEqual(['clawboard']) // only session start
   await $.prompt.submit({ text: 'hello', wait: false, origin: { kind: 'composer' } } as never)
   expect(opens).toEqual(['clawboard', 'clawboard'])
+})
+
+const BAND = {
+  plugin: 'clawboard',
+  component: 'AbovePrompt',
+  requestId: 'band',
+  props: { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: { offset: 0, bodyRows: 6 }, view: {} },
+} as const
+
+test('the strip above the prompt is always there, shows live state, and a click opens the panel', async ($, on) => {
+  const opens: string[] = []
+  const clock = engine(on, { opens })
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  await clock.advance(1000)
+  for (const surface of ['desktop', 'terminal'] as const) {
+    const before = opens.length
+    const ui = await $.ui.mount({ ...BAND, surface })
+    expect(await ui.find({ type: 'Text', text: /is waiting/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /context 21%/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /5h 37\.5%/ })).toBeDefined()
+    await ui.press({ key: 'open-clawboard' })
+    expect(opens.length).toBe(before + 1)
+    await ui.unmount()
+  }
+})
+
+test('a click on the strip also works while Claude is busy, and re-enables a /clawboard close', async ($, on) => {
+  const opens: string[] = []
+  engine(on, { opens, panes: [{ id: 'clawboard', isPlaced: true }] })
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  await $.command.run({ command: 'clawboard', args: 'close', origin: { kind: 'user' }, presentation: {} } as never)
+  const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: true }, surface: 'desktop' })
+  const before = opens.length
+  await ui.press({ key: 'open-clawboard' })
+  expect(opens.length).toBe(before + 1)
+  await ui.unmount()
+})
+
+test('the strip can be switched off in Crab House and then leaves the prompt to the engine', async ($, on) => {
+  engine(on, { stored: { settings: { strip: false } } })
+  on('ui.render', ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>engine</Text>
+  })
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await ui.find({ key: 'open-clawboard' })).toBeUndefined()
+  expect((await ui.find({ type: 'Text', text: /engine/ }))?.text).toBe('engine')
+  await ui.unmount()
+})
+
+test('Crab House says who closed the panel last', async ($, on) => {
+  engine(on)
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'tab:house' })
+  expect(await ui.find({ type: 'Text', text: /has not been closed in this session/ })).toBeDefined()
+  await $.command.run({ command: 'clawboard', args: 'close', origin: { kind: 'user' }, presentation: {} } as never)
+  expect(await ui.find({ type: 'Text', text: /Last time the panel closed/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /by \/clawboard close or toggle/ })).toBeDefined()
+  await ui.unmount()
 })
