@@ -1,0 +1,19 @@
+{
+  "name": "clawboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A customizable crab colony for Claude Code: live agent activity, usage monitoring and a project map.",
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "validate": "claude plugin validate .",
+    "test": "claude plugin test .",
+    "typecheck": "tsc -p .",
+    "assets": "node scripts/make-assets.mjs",
+    "assets:check": "node scripts/make-assets.mjs --check",
+    "check": "npm run validate && npm test && npm run assets:check"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.3"
+  }
+}

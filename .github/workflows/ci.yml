@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only token, no secrets. Pull requests from forks run with the same limits.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      # The mod validator and test runner ship with Claude Code. Neither needs a login.
+      - name: Install Claude Code
+        run: npm install --global @anthropic-ai/claude-code@2.1.311
+
+      - name: Validate the mod
+        run: claude plugin validate .
+
+      - name: Run the tests
+        run: claude plugin test .
+
+      - name: Check the generated artwork is up to date
+        run: node scripts/make-assets.mjs --check
+
+      - name: Check no template placeholders are left
+        run: |
+          if grep -rIn '{{[A-Z_]*}}' . --exclude-dir=.git --exclude-dir=node_modules; then
+            echo "Unfilled template placeholder found" >&2
+            exit 1
+          fi

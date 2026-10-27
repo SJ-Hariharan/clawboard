@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in Clawboard does not work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead. Screenshots are welcome (check them for private information first).
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where you use it
+      options:
+        - Claude desktop app
+        - Terminal
+        - VS Code
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15.5
+    validations:
+      required: true
+  - type: dropdown
+    id: workspace
+    attributes:
+      label: Workspace
+      options:
+        - Crab Crew
+        - The Tide
+        - The Burrow
+        - Under the Shell
+        - Crab House
+        - Not specific to one
+  - type: textarea
+    id: logs
+    attributes:
+      label: Validation and debug output
+      description: Output of `claude plugin validate .` and any `clawboard:` lines from `claude --debug`. Remove anything private.
+      render: shell

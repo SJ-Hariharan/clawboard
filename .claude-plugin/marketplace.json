@@ -1,0 +1,12 @@
+{
+  "name": "clawboard",
+  "owner": {
+    "name": "SJ-Hariharan"
+  },
+  "plugins": [
+    {
+      "name": "clawboard",
+      "source": "./"
+    }
+  ]
+}

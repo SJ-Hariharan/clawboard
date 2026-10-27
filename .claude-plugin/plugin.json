@@ -1,0 +1,22 @@
+{
+  "name": "clawboard",
+  "version": "0.1.0",
+  "description": "A crab colony for Claude Code: live agent activity, usage monitoring and a project map.",
+  "author": {
+    "name": "SJ-Hariharan",
+    "url": "https://github.com/SJ-Hariharan"
+  },
+  "homepage": "https://github.com/SJ-Hariharan/clawboard",
+  "repository": "https://github.com/SJ-Hariharan/clawboard",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "mod",
+    "dashboard",
+    "usage",
+    "agents",
+    "subagents",
+    "visualization"
+  ],
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,8 @@
+# Written by Claude Code each time it loads the mod; never commit
+.claude-plugin/types/
+
+node_modules/
+.DS_Store
+*.log
+.env
+.env.*
