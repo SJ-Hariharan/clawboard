@@ -32,3 +32,11 @@ test('every layout places every crab', () => {
     for (const c of crabs) expect(svg.includes(c.name)).toBe(true)
   }
 })
+
+test('the calm scene keeps the crabs moving but leaves the big waves and clouds still', () => {
+  const crabs = ['a', 'b'].map(id => ({ id, name: id, state: 'coding' as const, look: LOOK, title: id, selected: false }))
+  const scene = (calm: boolean) => colonySvg(crabs, { layout: 'beach', motion: true, idle: true, decorative: true, width: 400, calm }).svg
+  const animations = (svg: string) => (svg.match(/<animate/g) ?? []).length
+  expect(animations(scene(true))).toBeLessThan(animations(scene(false)))
+  expect(animations(scene(true))).toBeGreaterThan(0)
+})

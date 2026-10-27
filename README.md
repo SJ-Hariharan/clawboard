@@ -94,7 +94,7 @@ Select a crab with the name buttons under the colony (the panel's pictures canno
 Open **Crab House**.
 
 - **Workspaces:** rename them, move them up or down, hide the ones you do not use (Crab House itself always stays).
-- **Display:** compact or decorative layout, colony layout (beach, row, grid), reduced motion (no animation at all), idle animations (blinking, speech bubbles, snoozing), automatic per-turn explanations (off by default; they use your model quota), **Show the strip above the prompt**, and **Open this panel by itself, and reopen it on every message if it is not showing** (both on by default), plus a line saying who closed the panel last.
+- **Display:** compact or decorative layout, colony layout (beach, row, grid), reduced motion (no animation at all), idle animations (blinking, speech bubbles, snoozing), automatic per-turn explanations (off by default; they use your model quota), **Show the strip above the prompt**, **Rich pictures** (off by default: hover tooltips and animated waves and clouds, which can make scrolling the panel lag), and **Open this panel by itself, and reopen it on every message if it is not showing** (both on by default), plus a line saying who closed the panel last.
 - **Wardrobe:** pick the main crab, a single helper, or every helper of one type, then set its name, color (12), shell (5), hat (9), skin (6) and animation (4). The preview crab can show every state.
 
 Settings are saved across sessions. `/clawboard reset` restores the defaults.
@@ -133,6 +133,7 @@ Clawboard has no configuration file. Everything is in **Crab House**.
 | The panel is not showing | Run `/clawboard`. In the terminal it never opens by itself. |
 | The panel did not appear when Claude Code started | Click the **🦀 Clawboard** strip above the prompt, or send a message: both open it at any width. Claude Code only draws a panel that a mod opens by itself when the window is at least 144 terminal columns wide (110 once you have opened it yourself from this mod); narrower, it waits undrawn. If that does not help, run `claude plugin validate` on the mod and look for `clawboard:` lines in `claude --debug`. |
 | The panel disappears when I switch tabs or apps | Click the strip above the prompt, or send a message, and it reopens. **Crab House → Display** says who closed it last (the app window, `/clawboard close`, or Claude Code dropping it), which helps if you report a problem. If you used `/clawboard close`, click the strip or run `/clawboard` to bring it back. |
+| Scrolling the panel is laggy or sticks | Make sure **Rich pictures** is off in Crab House → Display (it is by default). That draws the pictures plainly, with still waves and clouds, instead of in animated frames with hover tooltips. If it still lags, switch on **reduced motion** to stop all animation and tell me which workspace you were scrolling. |
 | Limits say **Unavailable** | Claude Code has not received them. They need a supported sign-in and at least one response. This is expected on API-key setups. |
 | Context shows nothing | It fills in after the first response of the session. |
 | The Burrow is empty | The session is not in a project folder, or it has no recognizable files. Open a project and press **Rescan project**. |

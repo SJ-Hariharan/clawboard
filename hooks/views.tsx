@@ -155,15 +155,15 @@ async function crewView(io: IO, c: Ctx): Promise<RenderElement> {
     if (c.settings.layout === 'decorative') {
       const scene = colonySvg(
         crabs.map(x => ({ id: x.id, name: nameFor(x, c.settings), state: x.state, look: lookFor(x, c.settings), selected: x.id === selected?.id, title: `${nameFor(x, c.settings)} — ${STATE_LABEL[x.state]}: ${x.activity}` })),
-        { layout: c.settings.colony, motion, idle: c.settings.idle, decorative: true, width: c.px },
+        { layout: c.settings.colony, motion, idle: c.settings.idle, decorative: true, width: c.px, calm: !c.settings.hoverPictures },
       )
-      colony = <Svg source={scene.svg} alt={`Crab colony: ${crabs.map(x => `${nameFor(x, c.settings)} is ${STATE_LABEL[x.state].toLowerCase()}`).join(', ')}`} width={scene.width} height={scene.height} isInteractive={motion ? true : undefined} />
+      colony = <Svg source={scene.svg} alt={`Crab colony: ${crabs.map(x => `${nameFor(x, c.settings)} is ${STATE_LABEL[x.state].toLowerCase()}`).join(', ')}`} width={scene.width} height={scene.height} isInteractive={c.settings.hoverPictures && motion ? true : undefined} />
     } else {
       colony = (
         <Box flexDirection={c.settings.colony === 'row' ? 'row' : 'row'} flexWrap="wrap" gap={1}>
           {crabs.map(x => (
             <Box flexDirection="column" alignItems="center">
-              <Svg source={crabSvg({ look: lookFor(x, c.settings), state: x.state, motion, idle: c.settings.idle, seed: x.id }, `${nameFor(x, c.settings)}: ${x.activity}`, 2.2)} alt={`${nameFor(x, c.settings)} is ${STATE_LABEL[x.state]}`} width={66} height={53} isInteractive={motion ? true : undefined} />
+              <Svg source={crabSvg({ look: lookFor(x, c.settings), state: x.state, motion, idle: c.settings.idle, seed: x.id }, `${nameFor(x, c.settings)}: ${x.activity}`, 2.2)} alt={`${nameFor(x, c.settings)} is ${STATE_LABEL[x.state]}`} width={66} height={53} isInteractive={c.settings.hoverPictures && motion ? true : undefined} />
             </Box>
           ))}
         </Box>
@@ -508,7 +508,7 @@ async function tideView(io: IO, c: Ctx): Promise<RenderElement> {
         alt={`Output tokens for the last ${recent.length} turns`}
         width={c.px}
         height={Math.round((c.px * H) / W)}
-        isInteractive
+        isInteractive={c.settings.hoverPictures ? true : undefined}
       />
     )
   } else if (recent.length) {
@@ -672,7 +672,7 @@ async function burrowView(io: IO, c: Ctx): Promise<RenderElement> {
   let diagram: RenderElement
   if (Svg && c.surface !== 'terminal') {
     const d = mapSvg(map, sel?.id ?? null, c.px)
-    diagram = <Svg source={d.svg} alt={`Architecture: ${map.components.length} components across ${new Set(map.components.map(x => x.layer)).size} layers`} width={c.px} height={d.h} isInteractive />
+    diagram = <Svg source={d.svg} alt={`Architecture: ${map.components.length} components across ${new Set(map.components.map(x => x.layer)).size} layers`} width={c.px} height={d.h} isInteractive={c.settings.hoverPictures ? true : undefined} />
   } else {
     diagram = (
       <Box flexDirection="column">
@@ -958,6 +958,7 @@ async function houseView(io: IO, c: Ctx): Promise<RenderElement> {
       {Picker(c, 'colony', 'Colony layout', s.colony, [{ value: 'beach', label: 'Beach' }, { value: 'row', label: 'Row' }, { value: 'grid', label: 'Grid' }], v => save(cur => ({ ...cur, colony: v === 'row' || v === 'grid' ? v : 'beach' })))}
       {Toggle(c, 'reduced', 'Reduced motion (no animation)', s.reducedMotion, () => save(cur => ({ ...cur, reducedMotion: !cur.reducedMotion })))}
       {Toggle(c, 'idle', 'Idle animations (blinking, bubbles, snoozing)', s.idle, () => save(cur => ({ ...cur, idle: !cur.idle })))}
+      {Toggle(c, 'hover-pictures', 'Rich pictures: hover tooltips and animated waves and clouds (nicer, but scrolling the panel can lag)', s.hoverPictures, () => save(cur => ({ ...cur, hoverPictures: !cur.hoverPictures })))}
       {Toggle(c, 'strip', 'Show the 🦀 Clawboard strip above the prompt (click it to open the panel)', s.strip, () => save(cur => ({ ...cur, strip: !cur.strip })))}
       {Toggle(c, 'auto-open', 'Open this panel by itself, and reopen it on every message if it is not showing', s.autoOpen, () => save(cur => ({ ...cur, autoOpen: !cur.autoOpen })))}
       {Toggle(c, 'auto-explain', 'Explain each turn’s code changes automatically (uses your model quota)', s.autoExplain, () => save(cur => ({ ...cur, autoExplain: !cur.autoExplain })))}
@@ -982,7 +983,7 @@ async function houseView(io: IO, c: Ctx): Promise<RenderElement> {
 
   const preview =
     Svg && c.surface !== 'terminal' ? (
-      <Svg source={crabSvg({ look, state: previewState, motion: !s.reducedMotion, idle: s.idle, seed: target }, `Preview: ${previewState}`, 5)} alt={`Preview of the crab ${previewState}`} width={150} height={120} isInteractive={!s.reducedMotion ? true : undefined} />
+      <Svg source={crabSvg({ look, state: previewState, motion: !s.reducedMotion, idle: s.idle, seed: target }, `Preview: ${previewState}`, 5)} alt={`Preview of the crab ${previewState}`} width={150} height={120} isInteractive={s.hoverPictures && !s.reducedMotion ? true : undefined} />
     ) : (
       <Text>{crabAscii(previewState)}</Text>
     )
@@ -1032,7 +1033,7 @@ async function houseView(io: IO, c: Ctx): Promise<RenderElement> {
       {Section(c, 'Display', display)}
       {Section(c, 'Crab wardrobe', customizer)}
       <Box flexDirection="row" marginTop={1}>
-        <Button key="reset-all" label="Reset all Clawboard settings" onPress={() => act.saveSettings(io, () => ({ workspaces: [], layout: 'decorative', reducedMotion: false, idle: true, colony: 'beach', level: 'beginner', autoExplain: false, autoOpen: true, strip: true, looks: {} }))} />
+        <Button key="reset-all" label="Reset all Clawboard settings" onPress={() => act.saveSettings(io, () => ({ workspaces: [], layout: 'decorative', reducedMotion: false, idle: true, colony: 'beach', level: 'beginner', autoExplain: false, autoOpen: true, strip: true, hoverPictures: false, looks: {} }))} />
       </Box>
     </Box>
   )

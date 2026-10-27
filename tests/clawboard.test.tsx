@@ -328,3 +328,20 @@ test('Crab House says who closed the panel last', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: /by \/clawboard close or toggle/ })).toBeDefined()
   await ui.unmount()
 })
+
+test('rich pictures are off by default and the Crab House switch turns them on and is saved', async ($, on) => {
+  engine(on, { store: false })
+  on('store.get', () => ({ value: undefined }))
+  const writes: Record<string, unknown> = {}
+  on('store.set', (_, e) => {
+    writes[(e as { key: string }).key] = (e as { value: unknown }).value
+    return { value: undefined }
+  })
+  await $.session.start({ cwd: '/tmp/clawboard-test', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'tab:house' })
+  expect(writes.settings).toBeUndefined() // nothing was changed yet, so nothing was saved
+  await ui.press({ key: 'hover-pictures' })
+  expect((writes.settings as { hoverPictures: boolean }).hoverPictures).toBe(true)
+  await ui.unmount()
+})

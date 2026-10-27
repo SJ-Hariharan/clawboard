@@ -1,4 +1,4 @@
-import type { Crab, CrabLook, CrabState, Db, BoardSettings, Workspace } from '../types'
+import type { Crab, CrabLook, CrabState, Db, BoardSettings, UsageSnap, Workspace } from '../types'
 import { COLORS, DEFAULT_LOOK, hash } from './crabs'
 
 export function defaultDb(): Db {
@@ -39,6 +39,7 @@ export function defaultSettings(): BoardSettings {
     autoExplain: false,
     autoOpen: true,
     strip: true,
+    hoverPictures: false,
     looks: { main: { ...DEFAULT_LOOK, hat: 'party' } },
   }
 }
@@ -64,6 +65,7 @@ export function mergeSettings(stored: unknown): BoardSettings {
     autoExplain: !!s.autoExplain,
     autoOpen: s.autoOpen !== false,
     strip: s.strip !== false,
+    hoverPictures: !!s.hoverPictures,
     looks: { ...d.looks, ...(s.looks ?? {}) },
   }
 }
@@ -119,4 +121,11 @@ export function newCrab(id: string, now: number, partial: Partial<Crab>, taken: 
     tokensOut: 0,
     ...partial,
   }
+}
+
+export type UsageReading = Pick<UsageSnap, 'model' | 'contextTokens' | 'contextWindow' | 'contextPercent' | 'rateLimits' | 'costUsd'>
+
+/** True when two usage readings say the same thing (the time they were taken is not compared). */
+export function sameUsage(a: UsageReading, b: UsageReading): boolean {
+  return JSON.stringify([a.model, a.contextTokens, a.contextWindow, a.contextPercent, a.rateLimits, a.costUsd]) === JSON.stringify([b.model, b.contextTokens, b.contextWindow, b.contextPercent, b.rateLimits, b.costUsd])
 }

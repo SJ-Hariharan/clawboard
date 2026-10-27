@@ -158,6 +158,8 @@ export type BoardSettings = {
   autoOpen: boolean
   /** Show the clickable strip above the prompt box. */
   strip: boolean
+  /** Draw pictures in interactive frames (hover tooltips, animated waves and clouds). Nicer, but scrolling can lag. */
+  hoverPictures: boolean
   looks: Record<string, CrabLook>
 }
 

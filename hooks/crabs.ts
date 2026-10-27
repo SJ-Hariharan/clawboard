@@ -304,8 +304,10 @@ export type SceneCrab = { id: string; name: string; state: CrabState; look: Crab
 /** The colony: a beach scene with every crab placed by the chosen layout. */
 export function colonySvg(
   crabs: SceneCrab[],
-  opts: { layout: 'beach' | 'row' | 'grid'; motion: boolean; idle: boolean; decorative: boolean; width: number },
+  opts: { layout: 'beach' | 'row' | 'grid'; motion: boolean; idle: boolean; decorative: boolean; width: number; calm?: boolean },
 ): { svg: string; width: number; height: number } {
+  // Waves and clouds are big shapes that animate forever; the calm scene leaves them still (the crabs still move).
+  const scenery = opts.motion && !opts.calm
   const W = 300
   const cell = 46
   const n = Math.max(1, crabs.length)
@@ -341,13 +343,13 @@ export function colonySvg(
       `<rect x="0" y="0" width="${W}" height="${H}" fill="url(#cb-sand)"/>`,
       `<rect x="0" y="0" width="${W}" height="${sandTop - 6}" fill="url(#cb-sky)"/>`,
       `<circle cx="${W - 34}" cy="14" r="8" fill="#fde047"/>`,
-      `<g fill="#ffffff" opacity="0.9"><ellipse cx="50" cy="12" rx="12" ry="4"/><ellipse cx="60" cy="10" rx="8" ry="4"/>${opts.motion ? '<animateTransform attributeName="transform" type="translate" values="0 0;20 0;0 0" dur="30s" repeatCount="indefinite"/>' : ''}</g>`,
+      `<g fill="#ffffff" opacity="0.9"><ellipse cx="50" cy="12" rx="12" ry="4"/><ellipse cx="60" cy="10" rx="8" ry="4"/>${scenery ? '<animateTransform attributeName="transform" type="translate" values="0 0;20 0;0 0" dur="30s" repeatCount="indefinite"/>' : ''}</g>`,
     )
     const wave = (y: number, color: string, dur: number, amp: number) => {
       let d = `M -40 ${y}`
       for (let x = -40; x <= W + 40; x += 20) d += ` Q ${x + 5} ${y - amp} ${x + 10} ${y} T ${x + 20} ${y}`
       d += ` L ${W + 40} ${y + 10} L -40 ${y + 10} Z`
-      return `<path d="${d}" fill="${color}">${opts.motion ? `<animateTransform attributeName="transform" type="translate" values="0 0;-20 0" dur="${dur}s" repeatCount="indefinite"/>` : ''}</path>`
+      return `<path d="${d}" fill="${color}">${scenery ? `<animateTransform attributeName="transform" type="translate" values="0 0;-20 0" dur="${dur}s" repeatCount="indefinite"/>` : ''}</path>`
     }
     parts.push(wave(sandTop - 12, '#38bdf8', 3, 2), wave(sandTop - 8, '#0ea5e9', 4.5, 2.5), `<path d="M0 ${sandTop - 3} Q ${W / 2} ${sandTop + 2} ${W} ${sandTop - 3} L ${W} ${sandTop} L 0 ${sandTop} Z" fill="#fef3c7"/>`)
     // shells and pebbles

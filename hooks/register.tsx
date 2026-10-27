@@ -4,7 +4,7 @@ import type { IO } from './io'
 import type { Crab, CrabState, TimelineEvent, TokenTurn, UsageSample } from '../types'
 import { explainTurnEdits, runScan, saveSettings } from './actions'
 import { classify, short, testSummary } from './classify'
-import { defaultDb, defaultSettings, mergeSettings, nameFor, newCrab } from './store'
+import { defaultDb, defaultSettings, mergeSettings, nameFor, newCrab, sameUsage } from './store'
 import { aiSet, dbGet, dbSet } from './io'
 import { renderPane } from './views'
 import { STATE_LABEL } from './crabs'
@@ -73,16 +73,17 @@ async function patchCrab(io: IO, id: string, fn: (c: Crab) => Crab) {
 async function pollUsage(io: IO): Promise<void> {
   try {
     const [u, model, t] = await Promise.all([io.usage(), io.model(), now(io)])
-    await dbSet(io, 'usage', prev => ({
-      ...(prev ?? {}),
-      at: t,
+    const reading = {
       model,
       contextTokens: u.context.tokens,
       contextWindow: u.context.window,
       contextPercent: u.context.percent,
       rateLimits: u.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed, resetsAt: r.resetsAt })),
       costUsd: u.cost?.usd,
-    }))
+    }
+    // Every write redraws the whole panel, so skip it when nothing moved (except to refresh the "updated" time now and then).
+    const prev = await dbGet(io, 'usage')
+    if (!prev || !sameUsage(prev, reading) || t - prev.at >= 30_000) await dbSet(io, 'usage', p => ({ ...(p ?? {}), ...reading, at: t }))
     const five = u.rateLimits.find(r => r.kind === 'five_hour')?.percentUsed
     const week = u.rateLimits.find(r => r.kind === 'seven_day')?.percentUsed
     const sample: UsageSample = { t, fiveHour: five, weekly: week, context: u.context.percent }

@@ -14,7 +14,7 @@ The first release. Clawboard is a side panel for Claude Code that turns your ses
 ## What was checked
 
 - `claude plugin validate .` passes, with one informational note: the types file declares state but no new `$` noun, which is expected.
-- `claude plugin test .`: 33 tests pass. They mount every workspace on the desktop and terminal surfaces against a mocked engine, and cover tool-to-state mapping, the project scan, the artwork, unavailable usage limits, subagent crabs, settings and lesson persistence, the `/clear` reset, the strip above the prompt and its click, the panel reopening on every message (and not when it is already showing or after `/clawboard close`), the off switches, and `/clawboard` registered to run at once.
+- `claude plugin test .`: 37 tests pass. They mount every workspace on the desktop and terminal surfaces against a mocked engine, and cover tool-to-state mapping, the project scan, the artwork, unavailable usage limits, subagent crabs, settings and lesson persistence, the `/clear` reset, the strip above the prompt and its click, the panel reopening on every message (and not when it is already showing or after `/clawboard close`), the off switches, `/clawboard` registered to run at once, the calm scene and usage-change check that keep the panel light, and the Rich pictures switch.
 - `tsc` against the engine's types, with unused-code checks, is clean.
 - The mod loads and answers `/clawboard scan` in a headless Claude Code 2.1.311 session started with `--plugin-dir` from a clean copy, with no login.
 - Installing from the repository's marketplace file works against a local copy, in an isolated home folder.
@@ -25,6 +25,7 @@ The first release. Clawboard is a side panel for Claude Code that turns your ses
 - **No real screenshots.** The panel itself was not captured; macOS Screen Recording permission was not available. See `docs/CAPTURING.md`.
 - The panel was exercised through the engine's test kit and a headless load, not watched live in the desktop app or the terminal.
 - **Opening was not watched live.** The strip, the panel opening at start, on attach and on every message, and what happens when you switch tabs or apps are covered by the automated tests and the engine's own documentation, but the author has not seen them happen in the desktop app. Whether the app really closes the panel on a tab switch is a report from a user, not something verified; Crab House records who closed it so the cause can be confirmed.
+- **Scroll smoothness was not measured.** The panel draws its pictures lightly by default because that is the most likely cause of scrolling lag; it has not been timed in the desktop app.
 - Limits and context against a real subscription account, real subagent runs, and the quality of model-written explanations and lessons.
 - Linux, Windows, VS Code and mobile surfaces.
 - Very large projects: the scan reads at most 5,000 files and 450 source files.

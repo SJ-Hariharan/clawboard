@@ -16,6 +16,7 @@ First public release.
 - **Always-there strip above the prompt box** (🦀 Clawboard): shows the main crab's state, context and five-hour figures, and a click opens the panel at any width, even while Claude is working. A Crab House switch turns it off.
 - Automatic opening: the panel is requested at session start and when a desktop, VS Code or mobile client attaches, and it is reopened on every message the person sends while it is not showing (automated messages do not count). A Crab House switch (on by default) turns it off. The terminal never opens it by itself. `/clawboard close` keeps it closed until it is opened again.
 - `/clawboard` (open), `/clawboard close`, `/clawboard toggle`, `/clawboard scan` and `/clawboard reset` commands. `/clawboard` is registered to run at once, even mid-turn. Crab House shows who closed the panel last, to help explain a panel that vanishes.
+- Light pictures by default: the colony, token chart, project map and wardrobe preview are drawn plainly, the waves and clouds stand still (the crabs still move), and the panel is no longer redrawn every few seconds when the usage figures have not changed. A Crab House **Rich pictures** switch brings back hover tooltips and animated scenery, at the cost of smoother scrolling.
 - Tests, README artwork generators and a GitHub Actions workflow.
 
 ### Known limitations
